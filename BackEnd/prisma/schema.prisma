@@ -1,0 +1,97 @@
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id                Int      @id @default(autoincrement())
+  matricule         Int 
+  supervisorId      Int
+  attendanceId      Int
+  azureId           String
+  cinNumber         Int      @unique
+  department        String
+  name              String
+  email             String   @unique
+  password          String
+  status            Boolean
+  leaveBalance      Int      @default(0)
+  role              String
+  profilePicture    String?
+
+  // Relations
+  employee          Employee?
+  manager           Manager?
+  rh                RH?
+  leaves           Leaves[]
+  attendances      Attendance[]
+  notifications    Notification[]
+}
+
+model Employee {
+  id  String  @id
+  poste      String
+  userId   Int     @unique
+  user     User?  @relation(fields: [userId], references: [id])
+}
+
+model Manager {
+  id        String  @id @default(uuid())
+  userId    Int?     @unique
+  user      User?  @relation(fields: [userId], references: [id])
+}
+
+
+
+model RH {
+  id        String  @id @default(uuid())
+  userId    Int     @unique
+  user      User?   @relation(fields: [userId], references: [id])
+}
+
+
+
+
+model Attendance  {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  date              DateTime 
+  arrivalTime       DateTime 
+  departureTime     DateTime    
+
+  user              User   @relation(fields: [userId], references: [id])
+}
+
+
+model Notification {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  message     String
+  isRead      Boolean @default(false)
+  user        User  @relation(fields: [userId], references: [id])
+}
+
+model Leaves {
+  id            Int      @id @default(autoincrement())
+  userId        Int
+  startDate     DateTime
+  endDate       DateTime
+  status        String
+  isHalfDay     Boolean @default(false)
+  type          String
+  reason        String
+  user          User  @relation(fields: [userId], references: [id])
+}
+
+
+
+
+
+
+
+

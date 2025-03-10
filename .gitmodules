@@ -1,0 +1,3 @@
+[submodule "BackEnd/src"]
+	path = BackEnd/src
+	url = https://github.com/Kods10XXX/Team_Management/tree/main/BackEnd

@@ -38,8 +38,8 @@ class MyApp extends StatelessWidget {
         '/login': (context) => LoginPage(),
         '/register': (context) => RegisterPage(),
         '/welcome': (context) => WelcomeScreen(),
-        '/dashboard' : (context) => DashboardPage(),
-        //'/profileSettings': (context) => ProfileSettings(),
+        //'/dashboard' : (context) => DashboardPage(userId: userId),
+        //'/profileSettings': (context) => ProfileSettings(userId: userId),
       },
     );
   }

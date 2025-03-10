@@ -3,6 +3,7 @@ import 'package:flutter_application/screens/registerPage.dart'; // Assurez-vous 
 import 'package:flutter_application/services/api_service.dart'; // Importez ApiService
 import 'package:flutter_application/models/login_compte_dto.dart'; // Importez LoginCompteDto
 import 'package:flutter_application/screens/profile_settings.dart'; // Importez ProfileSettings
+import 'package:flutter_application/screens/dashboard.dart'; // Importez DashboardPage
 
 class LoginPage extends StatefulWidget {
   @override
@@ -13,17 +14,28 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final ApiService _apiService = ApiService();
 
-  // Contrôleurs pour les champs de saisie
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
   bool _isLoading = false;
+  String? _passwordError;
+  String? _emailError;
+
+  String? _validateEmail(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Veuillez entrer une adresse e-mail';
+    }
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+      return 'Adresse e-mail invalide';
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,  // Assure que l'interface s'ajuste lorsque le clavier est affiché
-      body: SingleChildScrollView(  // Utilisation de SingleChildScrollView pour permettre le défilement
+      resizeToAvoidBottomInset: true,
+      body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Form(
@@ -33,7 +45,6 @@ class _LoginPageState extends State<LoginPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: 60),
-                // Titre "Login"
                 Text(
                   "Login",
                   style: TextStyle(
@@ -43,8 +54,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 SizedBox(height: 30),
-
-                // Label "Your Email :"
                 Text(
                   "YOUR EMAIL :",
                   style: TextStyle(
@@ -53,8 +62,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 SizedBox(height: 5),
-
-                // Champ Email
                 TextField(
                   controller: _emailController,
                   decoration: InputDecoration(
@@ -65,11 +72,15 @@ class _LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,
                     ),
+                    errorText: _emailError,
                   ),
+                  onChanged: (value) {
+                    setState(() {
+                      _emailError = _validateEmail(value);
+                    });
+                  },
                 ),
                 SizedBox(height: 20),
-
-                // Label "Password :"
                 Text(
                   "PASSWORD :",
                   style: TextStyle(
@@ -78,9 +89,7 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 SizedBox(height: 5),
-
-                // Champ Password
-                TextField(
+                TextFormField(
                   controller: _passwordController,
                   obscureText: true,
                   decoration: InputDecoration(
@@ -91,11 +100,16 @@ class _LoginPageState extends State<LoginPage> {
                       borderRadius: BorderRadius.circular(10),
                       borderSide: BorderSide.none,
                     ),
+                    errorText: _passwordError,
                   ),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
                 ),
                 SizedBox(height: 30),
-
-                // Bouton Login
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
@@ -120,8 +134,6 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 SizedBox(height: 20),
-
-                // Lien "Forgot Password"
                 Center(
                   child: GestureDetector(
                     onTap: () {
@@ -137,12 +149,9 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 SizedBox(height: 20),
-
-                // Lien "Register"
                 Center(
                   child: GestureDetector(
                     onTap: () {
-                      // Redirection vers la page Register
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => RegisterPage()),
@@ -166,9 +175,26 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
+    await _apiService.initializeBaseUrl(); // Récupérer l'IP dynamique
+    print("Adresse IP dynamique utilisée : ${_apiService.baseUrl}");
+
     if (_formKey.currentState!.validate()) {
+      // Valider l'e-mail avant de continuer
+      final emailError = _validateEmail(_emailController.text);
+      if (emailError != null) {
+        setState(() {
+          _isLoading = false;
+          _passwordError = null;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(emailError)),
+        );
+        return;
+      }
+
       setState(() {
         _isLoading = true;
+        _passwordError = null;
       });
 
       try {
@@ -177,25 +203,39 @@ class _LoginPageState extends State<LoginPage> {
           _passwordController.text,
         );
 
+        print("Login API Response: $response");
+
+        if (response == null || response['data'] == null || response['data']['compte'] == null) {
+          throw Exception('Invalid response structure');
+        }
+
+        final token = response['data']['access_token'];
+        final userId = response['data']['compte']['id'];
+        final username = response['data']['compte']['name']; // Récupérez le nom d'utilisateur
+
+        print("Token: $token");
+        print("User ID: $userId");
+        print("Username: $username");
+
+        if (token == null || userId == null || username == null) {
+          throw Exception('Token, User ID, or Username is missing');
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text("Login successful!")),
         );
 
-        // Récupérer l'ID de l'utilisateur à partir de la réponse
-        final userId = response['data']['compte']['id']; // Assurez-vous que l'API renvoie l'ID de l'utilisateur
-
-        if (userId == null) {
-          throw Exception('User ID is null');
-        }
-
-        // Rediriger vers ProfileSettings avec l'ID de l'utilisateur
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-            builder: (context) => ProfileSettings(userId: userId),
+            builder: (context) => DashboardPage(userId: userId, username: username), // Transmettez le nom d'utilisateur
           ),
         );
       } catch (e) {
+        setState(() {
+          _passwordError = 'Incorrect password';
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to login: $e')),
         );

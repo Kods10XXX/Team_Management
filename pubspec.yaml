@@ -34,6 +34,7 @@ dependencies:
   provider: ^6.0.5
   http: ^0.13.3
   getwidget: ^2.0.4
+  intl: ^0.18.1
 
 
 
@@ -79,8 +80,8 @@ flutter:
   fonts:
     - family: Poppins
       fonts:
-        - asset: assets/fonts/Poppins-Regular.ttf
-  #      - asset: assets/fonts/Poppins-Italic.ttf
+   #     - asset: assets/fonts/Poppins-Regular.ttf
+         - asset: assets/fonts/Poppins-Italic.ttf
  #       - asset: assets/fonts/Poppins-SemiBoldItalic.ttf
  #       - asset: assets/fonts/Poppins-BoldItalic.ttf
 

@@ -8,7 +8,6 @@ import 'dart:io';
 
 class ProfileSettings extends StatefulWidget {
   final int userId;
-
   ProfileSettings({required this.userId});
 
   @override
@@ -17,10 +16,9 @@ class ProfileSettings extends StatefulWidget {
 
 class _ProfileSettingsState extends State<ProfileSettings> {
   final ApiService _apiService = ApiService();
-  File? _image; // Déclaration de la variable _image
-
+  File? _image;
   final ImagePicker _picker = ImagePicker();
-  Map<String, dynamic>? userData; // Données de l'utilisateur
+  Map<String, dynamic>? userData;
   bool _isLoading = true;
 
   @override
@@ -32,10 +30,14 @@ class _ProfileSettingsState extends State<ProfileSettings> {
   Future<void> _loadUserData() async {
     try {
       final data = await _apiService.getUserById(widget.userId);
-      setState(() {
-        userData = data;
-        _isLoading = false;
-      });
+      if (data != null && data['data'] != null) {
+        setState(() {
+          userData = data;
+          _isLoading = false;
+        });
+      } else {
+        throw Exception('Invalid user data structure');
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -47,38 +49,35 @@ class _ProfileSettingsState extends State<ProfileSettings> {
   }
 
   Future<void> _pickImage() async {
-    print("Pick Image method called");  // Pour vérifier si cette ligne est appelée
-    var status = await Permission.photos.request();
-    if (status.isGranted) {
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-      if (pickedFile != null) {
-        setState(() {
-          _image = File(pickedFile.path);
-        });
-
+    try {
+      var status = await Permission.photos.request();
+      if (status.isGranted) {
+        final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
+        if (pickedFile != null) {
+          setState(() {
+            _image = File(pickedFile.path);
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('No image selected')),
+          );
+        }
       } else {
-        print("No image selected");
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Permission denied to access photos')),
+        );
       }
-    } else {
+    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Permission denied to access photos')),
+        SnackBar(content: Text('Failed to pick image: $e')),
       );
     }
   }
 
-
-
-
-
-
-
-
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.red.shade100, // Fond rose clair
+      backgroundColor: Colors.red.shade100,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -89,7 +88,7 @@ class _ProfileSettingsState extends State<ProfileSettings> {
                   IconButton(
                     icon: const Icon(Icons.arrow_back),
                     onPressed: () {
-                      Navigator.pop(context); // Retour en arrière
+                      Navigator.pop(context);
                     },
                   ),
                   Text(
@@ -103,21 +102,26 @@ class _ProfileSettingsState extends State<ProfileSettings> {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.add_a_photo_rounded),
-                    onPressed: _pickImage, // Modifier l'image lorsque l'on clique
+                    onPressed: _pickImage,
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              // Utilisation de Stack pour positionner l'étiquette "PRO" sur l'avatar
               Stack(
                 alignment: Alignment.center,
                 children: [
                   _isLoading
-                      ? CircularProgressIndicator() // Afficher un indicateur de chargement
+                      ? CircularProgressIndicator()
                       : _image == null
-                      ? CircleAvatar(radius: 70, backgroundColor: Colors.grey)
-                      : CircleAvatar(radius: 70, backgroundImage: FileImage(_image!)),
-
+                      ? CircleAvatar(
+                    radius: 70,
+                    backgroundColor: Colors.grey,
+                    child: Icon(Icons.person, size: 50, color: Colors.white),
+                  )
+                      : CircleAvatar(
+                    radius: 70,
+                    backgroundImage: FileImage(_image!),
+                  ),
                   Positioned(
                     bottom: 0,
                     child: Container(
@@ -136,15 +140,15 @@ class _ProfileSettingsState extends State<ProfileSettings> {
               ),
               const SizedBox(height: 10),
               _isLoading
-                  ? CircularProgressIndicator() // Afficher un indicateur de chargement
+                  ? CircularProgressIndicator()
                   : Text(
-                userData?['data']['name'] ?? 'No Name',
+                userData?['data']?['name'] ?? 'No Name',
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               ),
               _isLoading
-                  ? CircularProgressIndicator() // Afficher un indicateur de chargement
+                  ? CircularProgressIndicator()
                   : Text(
-                userData?['data']['role'] ?? 'No Role',
+                userData?['data']?['role'] ?? 'No Role',
                 style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
               const SizedBox(height: 20),
@@ -180,16 +184,15 @@ class _ProfileSettingsState extends State<ProfileSettings> {
       leading: Container(
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          color: bgColor, // Couleur de fond du carré
-          borderRadius: BorderRadius.circular(10), // Coins arrondis
+          color: bgColor,
+          borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: iconColor, size: 24), // Couleur personnalisée pour l'icône
+        child: Icon(icon, color: iconColor, size: 24),
       ),
       title: Text(title, style: const TextStyle(fontSize: 16)),
       trailing: const Icon(Icons.arrow_forward_ios, size: 16),
       onTap: () {
         if (title == "Edit profile") {
-          // Naviguer vers UpdateProfile avec l'userId
           Navigator.push(
             context,
             MaterialPageRoute(
